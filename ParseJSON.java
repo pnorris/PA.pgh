@@ -1,73 +1,56 @@
-import com.google.gson.*;
-import java.io.*;
-import java.net.HttpURLConnection;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.net.URL;
-import java.util.*;
-
-/**
- * This class creates a JsonObject from a specified URL and grabs the data from it.
- */
+import java.net.URLConnection;
+import com.google.gson.*;
+import com.oracle.javafx.jmx.json.JSONException;
 
 public class ParseJSON
 {
-    public static void main(String[] args) throws Exception
+    public static JsonObject parseJson(String sURL) throws IOException, JSONException
     {
-        URL sURL = new URL("http://truetime.portauthority.org/bustime/api/v2/getstops?key=N4Y5aCtURdGtkMmbMF2R36PYj&rt=54&dir=INBOUND&format=json");
-
-        // Print keys as a String array
-        List keys = getKeysFromJson(sURL);
-        System.out.println(keys.size());
-
-        int i = 0;
+        JsonObject json = readJsonFromUrl(sURL);
 
         /*
-        for(Object elem : keys)
-        {
-            System.out.println(keys.get(i));
-            i++;
-        }
+        System.out.println(json.toString());
+
+        JsonObject bustimeResponse = json.get("bustime-response").getAsJsonObject();
+        JsonArray stops = bustimeResponse.get("stops").getAsJsonArray();
+        JsonObject stop0 = stops.get(0).getAsJsonObject();
+
+        System.out.println(bustimeResponse.get("stops"));
+        System.out.println(stops.get(0));
+        System.out.println(stop0);
+        System.out.println(stop0.get("stpid").getAsString());
+        System.out.println(stop0.get("stpnm").getAsString());
+        System.out.println(stop0.get("lat").getAsDouble());
+        System.out.println(stop0.get("lon").getAsDouble());
         */
+
+        return json;
     }
 
-    static List getKeysFromJson(URL url) throws Exception
-    {
-        HttpURLConnection request = (HttpURLConnection) url.openConnection();
-        request.connect();
+    private static JsonObject readJsonFromUrl(String sURL) throws IOException, JSONException {
 
-        BufferedReader in = new BufferedReader(
-                new InputStreamReader(
-                        request.getInputStream()));
+        URL url = new URL(sURL);
+        URLConnection myURLConnection = url.openConnection();
+        myURLConnection.connect();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
+        String jsonText = readAll(reader);
+        JsonParser parser = new JsonParser();
+        JsonObject json = parser.parse(jsonText).getAsJsonObject();
 
-        Object things = new Gson().fromJson(in, Object.class);
-
-        List keys = new ArrayList();
-
-        collectAllTheKeys(keys, things);
-
-        request.disconnect();
-
-        return keys;
+        return json;
     }
 
-    static void collectAllTheKeys(List keys, Object o)
-    {
-        Collection values = null;
-
-        if (o instanceof Map)
-        {
-            Map map = (Map) o;
-            keys.addAll(map.keySet()); // collect keys at current level in hierarchy
-            values = map.values();
-
-            System.out.println(o);
+    private static String readAll(Reader rd) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        int cp;
+        while ((cp = rd.read()) != -1) {
+            sb.append((char) cp);
         }
-        else if (o instanceof Collection)
-            values = (Collection) o;
-
-        else // nothing further to collect keys from
-            return;
-
-        for (Object value : values)
-            collectAllTheKeys(keys, value);
+        return sb.toString();
     }
 }
